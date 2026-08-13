@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import TabBar from './TabBar'
 
@@ -21,10 +21,8 @@ function formatNow(date) {
 export default function AppShell() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
   const [now, setNow] = useState(() => new Date())
   const [logoutOpen, setLogoutOpen] = useState(false)
-  const hideShellTabs = location.pathname === '/pos'
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30_000)
@@ -53,7 +51,7 @@ export default function AppShell() {
               <span className="pill-date">{dayDate}</span>
             </div>
           </div>
-          <div className="pill pill-info">
+          <div className="pill pill-info pill-admin">
             <img className="pill-icon" src="/dashboard/admin.svg" alt="" />
             <span>{user.name}</span>
           </div>
@@ -63,12 +61,12 @@ export default function AppShell() {
             onClick={() => setLogoutOpen(true)}
           >
             <img className="pill-icon" src="/dashboard/logout.svg" alt="" />
-            <span>Log out</span>
+            <span className="pill-logout-label">Log out</span>
           </button>
         </div>
       </header>
 
-      {!hideShellTabs ? <TabBar /> : null}
+      <TabBar />
 
       <main className="main-area">
         <Outlet />

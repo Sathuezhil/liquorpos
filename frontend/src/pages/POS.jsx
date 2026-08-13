@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api'
-import TabBar from '../components/TabBar'
 
 const PAGE_SIZE = 8
 
@@ -203,8 +202,6 @@ export default function POS() {
   return (
     <div className="pos-layout">
       <div className="pos-left">
-        <TabBar />
-
         <section className="pos-panel pos-products">
           <div className="pos-search">
             <span className="pos-search-icon">

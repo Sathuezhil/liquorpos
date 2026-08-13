@@ -34,9 +34,16 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+html,
+body {
+  overflow-x: hidden;
+}
+
 button,
-input {
+input,
+select {
   font: inherit;
+  touch-action: manipulation;
 }
 
 /* ——— Login ——— */
@@ -1412,6 +1419,7 @@ input {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .customer-toolbar .product-search {
@@ -1758,6 +1766,7 @@ input {
   color: #6b7280;
 }
 
+/* ——— Responsive ——— */
 @media (max-width: 1400px) {
   .pos-layout {
     grid-template-columns: 1fr;
@@ -1772,7 +1781,7 @@ input {
   }
 
   .pos-products {
-    min-height: 520px;
+    min-height: 420px;
   }
 
   .pos-products .pos-search,
@@ -1781,37 +1790,273 @@ input {
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 900px) {
   .app-shell {
-    padding: 12px;
+    padding: 12px 12px calc(88px + env(safe-area-inset-bottom, 0px));
     gap: 12px;
   }
 
   .top-bar {
     padding: 12px 14px;
+    gap: 10px;
   }
 
   .brand {
-    font-size: 1.25rem;
+    font-size: 1.2rem;
+  }
+
+  .top-actions {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .pill {
     padding: 8px 12px;
-    font-size: 0.8rem;
+    font-size: 0.82rem;
   }
-}
 
-@media (max-width: 480px) {
+  .pill-datetime {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .pill-date {
+    display: none;
+  }
+
+  .pill-logout-label {
+    display: none;
+  }
+
+  .pill-logout {
+    padding: 8px 10px;
+  }
+
+  .tab-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 900;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0;
+    padding: 8px 6px calc(8px + env(safe-area-inset-bottom, 0px));
+    background: #fff;
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -6px 20px rgba(30, 40, 60, 0.08);
+  }
+
+  .tab {
+    flex: 1 1 0;
+    text-align: center;
+    padding: 12px 4px;
+    border-radius: 12px;
+    font-size: 0.72rem;
+    box-shadow: none;
+    white-space: nowrap;
+  }
+
+  .tab-active {
+    box-shadow: none;
+  }
+
+  .dashboard-panel,
+  .product-page,
+  .sales-page,
+  .customer-page,
+  .pos-panel {
+    padding: 14px;
+  }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
   .stat-card {
     width: 100%;
-    flex: 1 1 100%;
+    flex: none;
+    min-height: 72px;
+    padding: 14px 16px 14px 28px;
+  }
+
+  .stat-value {
+    font-size: 1.1rem;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+    white-space: normal;
+  }
+
+  .product-toolbar,
+  .sales-toolbar,
+  .customer-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .product-search,
+  .sales-search,
+  .customer-toolbar .product-search {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .product-filter,
+  .sales-status,
+  .sales-date,
+  .product-add-btn,
+  .sales-download-btn {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .sales-period,
+  .sales-subtabs {
+    width: 100%;
+    display: flex;
+  }
+
+  .sales-period {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .sales-period .sales-pill,
+  .sales-subtabs .sales-pill {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0 10px;
+    text-align: center;
+  }
+
+  .product-table-wrap,
+  .pos-table-wrap,
+  .order-items-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .product-table,
+  .pos-table,
+  .sales-table,
+  .order-items-table {
+    min-width: 640px;
+  }
+
+  .pos-products {
+    min-height: 0;
+  }
+
+  .order-item {
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
   .order-pay-actions {
     flex-direction: column;
   }
 
-  .btn-not-paid {
+  .btn-not-paid,
+  .btn-paid {
     width: 100%;
+    min-width: 0;
+  }
+
+  .order-modal,
+  .add-product-modal,
+  .logout-modal,
+  .confirm-dialog {
+    width: 100%;
+    max-height: min(90vh, 100%);
+    overflow: auto;
+    padding: 22px 18px 18px;
+  }
+
+  .order-modal-head {
+    flex-wrap: wrap;
+  }
+
+  .order-info-box,
+  .customer-view-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-backdrop,
+  .confirm-backdrop {
+    padding: 12px;
+    align-items: end;
+  }
+
+  .logout-modal-actions,
+  .confirm-actions {
+    flex-wrap: wrap;
+  }
+
+  .logout-btn-no,
+  .logout-btn-yes,
+  .confirm-no,
+  .confirm-yes {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .pos-pagination {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .pos-page-controls {
+    flex-wrap: wrap;
+  }
+
+  .login-card {
+    padding: 28px 20px 24px;
+  }
+
+  .login-card h1 {
+    font-size: 1.45rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-shell {
+    padding: 10px 10px calc(84px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .top-actions {
+    gap: 8px;
+  }
+
+  .pill-admin span {
+    max-width: 72px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tab {
+    font-size: 0.68rem;
+    padding: 10px 2px;
+  }
+
+  .product-table,
+  .pos-table,
+  .sales-table,
+  .order-items-table {
+    min-width: 560px;
+    font-size: 0.85rem;
+  }
+
+  .status-pill {
+    min-width: 72px;
+    padding: 4px 8px;
+    font-size: 0.75rem;
   }
 }
