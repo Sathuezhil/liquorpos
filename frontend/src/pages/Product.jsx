@@ -1,24 +1,14 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { api } from '../api'
 
 const PAGE_SIZE = 8
-
-const INITIAL_PRODUCTS = Array.from({ length: 16 }, (_, i) => {
-  const stock = i % 8 === 0 ? 'low' : i % 8 === 1 ? 'out' : 'in'
-  return {
-    id: String(i + 1).padStart(3, '0'),
-    name: 'Product 1',
-    size: '20 cl',
-    amount: 123,
-    quantity: 20,
-    status: stock,
-  }
-})
 
 const EMPTY_FORM = {
   name: '',
   size: '',
   amount: '',
   stock: '',
+  category: '',
 }
 
 function formatMoney(value) {
@@ -31,12 +21,6 @@ function statusLabel(status) {
   return 'In Stock'
 }
 
-function stockStatus(qty) {
-  if (qty <= 0) return 'out'
-  if (qty < 10) return 'low'
-  return 'in'
-}
-
 function CloseIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -46,9 +30,13 @@ function CloseIcon() {
 }
 
 export default function Product() {
-  const [products, setProducts] = useState(INITIAL_PRODUCTS)
+  const [products, setProducts] = useState([])
+  const [categories, setCategories] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [categoryFilter, setCategoryFilter] = useState('all')
   const [page, setPage] = useState(1)
   const [formOpen, setFormOpen] = useState(false)
   const [editingId, setEditingId] = useState(null)
@@ -58,15 +46,43 @@ export default function Product() {
 
   const isEditing = Boolean(editingId)
 
+  async function loadProducts() {
+    setLoading(true)
+    setError('')
+    try {
+      const [productRes, categoryRes] = await Promise.all([
+        api.getProducts(),
+        api.getCategories(),
+      ])
+      setProducts(productRes.data || [])
+      setCategories(categoryRes.data || [])
+    } catch (err) {
+      setError(err.message || 'Failed to load products')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadProducts()
+  }, [])
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     return products.filter((p) => {
       const matchSearch =
-        !q || p.name.toLowerCase().includes(q) || p.id.toLowerCase().includes(q)
+        !q ||
+        p.name.toLowerCase().includes(q) ||
+        String(p.id).toLowerCase().includes(q) ||
+        p.size.toLowerCase().includes(q)
       const matchStatus = statusFilter === 'all' || p.status === statusFilter
-      return matchSearch && matchStatus
+      const matchCategory =
+        categoryFilter === 'all' ||
+        p.category?.slug === categoryFilter ||
+        p.category?.name === categoryFilter
+      return matchSearch && matchStatus && matchCategory
     })
-  }, [products, search, statusFilter])
+  }, [products, search, statusFilter, categoryFilter])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const currentPage = Math.min(page, totalPages)
@@ -84,7 +100,10 @@ export default function Product() {
 
   function openAddForm() {
     setEditingId(null)
-    setForm(EMPTY_FORM)
+    setForm({
+      ...EMPTY_FORM,
+      category: categories[0]?.slug || '',
+    })
     setConfirmOpen(false)
     setFormOpen(true)
   }
@@ -96,6 +115,7 @@ export default function Product() {
       size: product.size,
       amount: String(product.amount),
       stock: String(product.quantity),
+      category: product.category?.slug || product.category?.name || '',
     })
     setConfirmOpen(false)
     setFormOpen(true)
@@ -114,54 +134,44 @@ export default function Product() {
     const size = form.size.trim()
     const amount = Number(form.amount)
     const quantity = Number(form.stock)
-    if (!name || !size || Number.isNaN(amount) || Number.isNaN(quantity)) return
+    if (!name || !size || !form.category || Number.isNaN(amount) || Number.isNaN(quantity)) return
     setConfirmOpen(true)
   }
 
-  function confirmSave() {
-    const name = form.name.trim()
-    const size = form.size.trim()
-    const amount = Number(form.amount)
-    const quantity = Number(form.stock)
-
-    if (editingId) {
-      setProducts((prev) =>
-        prev.map((p) =>
-          p.id === editingId
-            ? {
-                ...p,
-                name,
-                size,
-                amount,
-                quantity,
-                status: stockStatus(quantity),
-              }
-            : p,
-        ),
-      )
-    } else {
-      const nextId = String(products.length + 1).padStart(3, '0')
-      setProducts((prev) => [
-        {
-          id: nextId,
-          name,
-          size,
-          amount,
-          quantity,
-          status: stockStatus(quantity),
-        },
-        ...prev,
-      ])
-      setPage(1)
+  async function confirmSave() {
+    const payload = {
+      name: form.name.trim(),
+      size: form.size.trim(),
+      amount: Number(form.amount),
+      quantity: Number(form.stock),
+      category: form.category,
     }
-    closeModal()
+
+    try {
+      if (editingId) {
+        await api.updateProduct(editingId, payload)
+      } else {
+        await api.createProduct(payload)
+        setPage(1)
+      }
+      await loadProducts()
+      closeModal()
+    } catch (err) {
+      setError(err.message || 'Failed to save product')
+      setConfirmOpen(false)
+    }
   }
 
-  function confirmDelete() {
+  async function confirmDelete() {
     if (!deleteId) return
-    setProducts((prev) => prev.filter((p) => p.id !== deleteId))
-    setDeleteId(null)
-    setPage((p) => Math.min(p, Math.max(1, Math.ceil((filtered.length - 1) / PAGE_SIZE))))
+    try {
+      await api.deleteProduct(deleteId)
+      setDeleteId(null)
+      await loadProducts()
+    } catch (err) {
+      setError(err.message || 'Failed to delete product')
+      setDeleteId(null)
+    }
   }
 
   return (
@@ -185,6 +195,24 @@ export default function Product() {
         <label className="product-filter">
           <img className="product-filter-icon" src="/product/status.svg" alt="" />
           <select
+            value={categoryFilter}
+            onChange={(e) => {
+              setCategoryFilter(e.target.value)
+              setPage(1)
+            }}
+          >
+            <option value="all">Category</option>
+            {categories.map((c) => (
+              <option key={c.id || c.slug} value={c.slug}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="product-filter">
+          <img className="product-filter-icon" src="/product/status.svg" alt="" />
+          <select
             value={statusFilter}
             onChange={(e) => {
               setStatusFilter(e.target.value)
@@ -203,12 +231,16 @@ export default function Product() {
         </button>
       </div>
 
+      {error ? <p className="api-error">{error}</p> : null}
+      {loading ? <p className="api-loading">Loading products...</p> : null}
+
       <div className="product-table-wrap">
         <table className="product-table">
           <thead>
             <tr>
               <th>Product ID</th>
               <th>Product</th>
+              <th>Category</th>
               <th>Size</th>
               <th>Amount</th>
               <th>Stock</th>
@@ -217,10 +249,16 @@ export default function Product() {
             </tr>
           </thead>
           <tbody>
+            {!loading && pageItems.length === 0 ? (
+              <tr>
+                <td colSpan={8}>No products found</td>
+              </tr>
+            ) : null}
             {pageItems.map((product) => (
               <tr key={product.id}>
                 <td>{product.id}</td>
                 <td>{product.name}</td>
+                <td>{product.category?.name || '-'}</td>
                 <td>
                   <span className="size-chip">{product.size}</span>
                 </td>
@@ -327,7 +365,7 @@ export default function Product() {
               <span>Product name</span>
               <input
                 type="text"
-                placeholder="eg; Pepsi"
+                placeholder="eg; Jack Daniels"
                 value={form.name}
                 onChange={(e) => updateField('name', e.target.value)}
                 required
@@ -335,10 +373,28 @@ export default function Product() {
             </label>
 
             <label className="add-product-field">
+              <span>Category</span>
+              <select
+                value={form.category}
+                onChange={(e) => updateField('category', e.target.value)}
+                required
+              >
+                <option value="" disabled>
+                  Select category
+                </option>
+                {categories.map((c) => (
+                  <option key={c.id || c.slug} value={c.slug}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="add-product-field">
               <span>Size</span>
               <input
                 type="text"
-                placeholder="eg; 30 cl"
+                placeholder="eg; 70 cl"
                 value={form.size}
                 onChange={(e) => updateField('size', e.target.value)}
                 required
@@ -351,7 +407,7 @@ export default function Product() {
                 type="number"
                 min="0"
                 step="0.01"
-                placeholder="eg; 123"
+                placeholder="eg; 15.00"
                 value={form.amount}
                 onChange={(e) => updateField('amount', e.target.value)}
                 required

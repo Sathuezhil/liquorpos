@@ -1,47 +1,16 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { api } from '../api'
 
 const PAGE_SIZE = 10
-
-const ORDER_COUNTS = [5, 6, 2, 2, 2, 2, 2, 2, 2, 1]
-
-const INITIAL_CUSTOMERS = Array.from({ length: 10 }, (_, i) => ({
-  key: `customer-${i + 1}`,
-  id: 'Or 123',
-  viewId: 'Cus 123',
-  name: 'Kishana',
-  fullName: 'John Doe',
-  email: 'example@gmail.com',
-  dateAdded: '06/06/2026',
-  initials: 'YK',
-  contact: '0775512445',
-  totalOrders: ORDER_COUNTS[i] ?? 2,
-  amountSpend: 123,
-  viewOrders: 45,
-  viewSpend: 123,
-}))
-
-function formatMoney(value) {
-  return `€ ${Number(value).toFixed(2)}`
-}
-
-function getInitials(name) {
-  const parts = name.trim().split(/\s+/).filter(Boolean)
-  if (parts.length === 0) return '?'
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
-  return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
-}
-
-function todayLabel() {
-  const d = new Date()
-  const dd = String(d.getDate()).padStart(2, '0')
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
-  const yyyy = d.getFullYear()
-  return `${dd}/${mm}/${yyyy}`
-}
 
 const EMPTY_FORM = {
   name: '',
   phone: '',
+  email: '',
+}
+
+function formatMoney(value) {
+  return `€ ${Number(value).toFixed(2)}`
 }
 
 function CloseIcon() {
@@ -62,7 +31,9 @@ function StatCard({ value, label }) {
 }
 
 export default function Customer() {
-  const [customers, setCustomers] = useState(INITIAL_CUSTOMERS)
+  const [customers, setCustomers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [viewCustomer, setViewCustomer] = useState(null)
@@ -73,6 +44,23 @@ export default function Customer() {
   const [nameError, setNameError] = useState('')
 
   const isEditing = Boolean(editingId)
+
+  async function loadCustomers() {
+    setLoading(true)
+    setError('')
+    try {
+      const res = await api.getCustomers()
+      setCustomers(res.data || [])
+    } catch (err) {
+      setError(err.message || 'Failed to load customers')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadCustomers()
+  }, [])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -95,9 +83,14 @@ export default function Customer() {
   const showingFrom = filtered.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1
   const showingTo = Math.min(currentPage * PAGE_SIZE, filtered.length)
 
-  function deleteCustomer(key) {
-    setCustomers((prev) => prev.filter((c) => c.key !== key))
-    if (viewCustomer?.key === key) setViewCustomer(null)
+  async function deleteCustomer(key) {
+    try {
+      await api.deleteCustomer(key)
+      if (viewCustomer?.key === key) setViewCustomer(null)
+      await loadCustomers()
+    } catch (err) {
+      setError(err.message || 'Failed to delete customer')
+    }
   }
 
   function closeFormModal() {
@@ -122,6 +115,7 @@ export default function Customer() {
     setForm({
       name: customer.name,
       phone: customer.contact,
+      email: customer.email || '',
     })
     setNameError('')
     setConfirmOpen(false)
@@ -134,75 +128,33 @@ export default function Customer() {
     if (key === 'name' && nameError) setNameError('')
   }
 
-  function isDuplicateName(name, excludeKey = null) {
-    const normalized = name.trim().toLowerCase()
-    return customers.some(
-      (c) => c.key !== excludeKey && c.name.trim().toLowerCase() === normalized,
-    )
-  }
-
   function handleSubmitCustomer(e) {
     e.preventDefault()
     const name = form.name.trim()
     const phone = form.phone.trim()
     if (!name || !phone) return
-
-    if (isDuplicateName(name, editingId)) {
-      setNameError('This customer name already exists.')
-      return
-    }
-
     setConfirmOpen(true)
   }
 
-  function confirmSaveCustomer() {
+  async function confirmSaveCustomer() {
     const name = form.name.trim()
     const phone = form.phone.trim()
+    const email = form.email.trim()
     if (!name || !phone) return
-    if (isDuplicateName(name, editingId)) {
-      setConfirmOpen(false)
-      setNameError('This customer name already exists.')
-      return
-    }
 
-    if (editingId) {
-      setCustomers((prev) =>
-        prev.map((c) =>
-          c.key === editingId
-            ? {
-                ...c,
-                name,
-                fullName: name,
-                contact: phone,
-                initials: getInitials(name),
-              }
-            : c,
-        ),
-      )
-    } else {
-      const nextNum = customers.length + 1
-      const idNum = String(nextNum).padStart(3, '0')
-      setCustomers((prev) => [
-        {
-          key: `customer-${Date.now()}`,
-          id: `Or ${idNum}`,
-          viewId: `Cus ${idNum}`,
-          name,
-          fullName: name,
-          email: 'example@gmail.com',
-          dateAdded: todayLabel(),
-          initials: getInitials(name),
-          contact: phone,
-          totalOrders: 0,
-          amountSpend: 0,
-          viewOrders: 0,
-          viewSpend: 0,
-        },
-        ...prev,
-      ])
-      setPage(1)
+    try {
+      if (editingId) {
+        await api.updateCustomer(editingId, { name, contact: phone, email })
+      } else {
+        await api.createCustomer({ name, contact: phone, email })
+        setPage(1)
+      }
+      await loadCustomers()
+      closeFormModal()
+    } catch (err) {
+      setConfirmOpen(false)
+      setNameError(err.message || 'Failed to save customer')
     }
-    closeFormModal()
   }
 
   return (
@@ -228,6 +180,9 @@ export default function Customer() {
         </button>
       </div>
 
+      {error ? <p className="api-error">{error}</p> : null}
+      {loading ? <p className="api-loading">Loading customers...</p> : null}
+
       <div className="product-table-wrap">
         <table className="product-table customer-table">
           <thead>
@@ -241,6 +196,11 @@ export default function Customer() {
             </tr>
           </thead>
           <tbody>
+            {!loading && pageItems.length === 0 ? (
+              <tr>
+                <td colSpan={6}>No customers found</td>
+              </tr>
+            ) : null}
             {pageItems.map((customer) => (
               <tr key={customer.key}>
                 <td>{customer.id}</td>
@@ -370,6 +330,16 @@ export default function Customer() {
               />
             </label>
 
+            <label className="add-product-field">
+              <span>Email address</span>
+              <input
+                type="email"
+                placeholder="eg; example@gmail.com"
+                value={form.email}
+                onChange={(e) => updateField('email', e.target.value)}
+              />
+            </label>
+
             <button type="submit" className="add-product-submit">
               {isEditing ? 'Update Customer' : 'Add Customer'}
             </button>
@@ -466,13 +436,6 @@ export default function Customer() {
             <h3 className="order-section-title">Customer Information</h3>
             <div className="order-info-box">
               <div className="order-info-item">
-                <span className="order-info-label">Date Added</span>
-                <div className="order-info-value">
-                  <img src="/sales/calendar.svg" alt="" />
-                  <span>{viewCustomer.dateAdded}</span>
-                </div>
-              </div>
-              <div className="order-info-item">
                 <span className="order-info-label">Customer name</span>
                 <div className="order-info-value">
                   <img src="/sales/user.svg" alt="" />
@@ -480,10 +443,17 @@ export default function Customer() {
                 </div>
               </div>
               <div className="order-info-item">
+                <span className="order-info-label">Phone number</span>
+                <div className="order-info-value">
+                  <img src="/sales/user.svg" alt="" />
+                  <span>{viewCustomer.contact}</span>
+                </div>
+              </div>
+              <div className="order-info-item">
                 <span className="order-info-label">Email address</span>
                 <div className="order-info-value">
                   <img src="/sales/email.svg" alt="" />
-                  <span>{viewCustomer.email}</span>
+                  <span>{viewCustomer.email || '-'}</span>
                 </div>
               </div>
             </div>

@@ -1,15 +1,5 @@
-const statsTop = [
-  { value: '45', label: 'Total Product Sold' },
-  { value: '€ 123.00', label: "Today's Revenue" },
-  { value: '€ 123.00', label: 'Weekly Revenue' },
-  { value: '€ 123.00', label: 'Monthly Revenue' },
-  { value: '€ 123.00', label: 'Total Revenue' },
-]
-
-const statsBottom = [
-  { value: '45', label: 'Total Product' },
-  { value: '123', label: 'Total Customer' },
-]
+import { useEffect, useState } from 'react'
+import { api } from '../api'
 
 function StatCard({ value, label }) {
   return (
@@ -21,8 +11,39 @@ function StatCard({ value, label }) {
 }
 
 export default function Dashboard() {
+  const [statsTop, setStatsTop] = useState([])
+  const [statsBottom, setStatsBottom] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let alive = true
+    setLoading(true)
+    setError('')
+    api
+      .getDashboardStats()
+      .then((res) => {
+        if (!alive) return
+        setStatsTop(res.data?.top || [])
+        setStatsBottom(res.data?.bottom || [])
+      })
+      .catch((err) => {
+        if (!alive) return
+        setError(err.message || 'Failed to load dashboard')
+      })
+      .finally(() => {
+        if (alive) setLoading(false)
+      })
+    return () => {
+      alive = false
+    }
+  }, [])
+
   return (
     <div className="dashboard-panel">
+      {error ? <p className="api-error">{error}</p> : null}
+      {loading ? <p className="api-loading">Loading dashboard...</p> : null}
+
       <div className="stat-grid stat-grid-top">
         {statsTop.map((s) => (
           <StatCard key={s.label} {...s} />

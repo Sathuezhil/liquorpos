@@ -8,17 +8,23 @@ export default function Login() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
   if (user) return <Navigate to="/dashboard" replace />
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     setError('')
-    const result = login(username, password)
-    if (result.ok) {
-      navigate('/dashboard', { replace: true })
-    } else {
-      setError(result.error)
+    setLoading(true)
+    try {
+      const result = await login(username, password)
+      if (result.ok) {
+        navigate('/dashboard', { replace: true })
+      } else {
+        setError(result.error)
+      }
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -35,7 +41,7 @@ export default function Login() {
             autoComplete="username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            placeholder="eg; Pepsi"
+            placeholder="eg; admin"
           />
         </div>
 
@@ -53,8 +59,8 @@ export default function Login() {
 
         {error ? <p className="login-error">{error}</p> : null}
 
-        <button type="submit" className="login-btn">
-          Login
+        <button type="submit" className="login-btn" disabled={loading}>
+          {loading ? 'Logging in...' : 'Login'}
         </button>
       </form>
     </div>

@@ -1,4 +1,5 @@
 import { createContext, useContext, useMemo, useState } from 'react'
+import { api } from './api'
 
 const AuthContext = createContext(null)
 
@@ -17,19 +18,25 @@ export function AuthProvider({ children }) {
   const value = useMemo(
     () => ({
       user,
-      login(username, password) {
+      async login(username, password) {
         const name = username.trim()
         if (!name || !password) {
           return { ok: false, error: 'Enter username and password' }
         }
-        // Demo auth — replace with real API later
-        if (name.toLowerCase() === 'admin' && password === 'admin') {
-          const next = { name: 'Admin', role: 'admin' }
+        try {
+          const res = await api.login(name, password)
+          const next = {
+            id: res.data.id,
+            name: res.data.name,
+            username: res.data.username,
+            role: res.data.role,
+          }
           localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
           setUser(next)
           return { ok: true }
+        } catch (err) {
+          return { ok: false, error: err.message || 'Invalid username or password' }
         }
-        return { ok: false, error: 'Invalid username or password' }
       },
       logout() {
         localStorage.removeItem(STORAGE_KEY)

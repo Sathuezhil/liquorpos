@@ -1,48 +1,17 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { api } from '../api'
 
 const PAGE_SIZE = 10
 
-const STATS = [
-  { value: '45', label: 'Total Product Sold' },
-  { value: '€ 123.00', label: "Today's Revenue" },
-  { value: '€ 123.00', label: 'Weekly Revenue' },
-  { value: '€ 123.00', label: 'Monthly Revenue' },
-  { value: '€ 123.00', label: 'Total Revenue' },
-]
-
-const ORDER_ITEMS = [
-  { product: 'Product 1', size: '20 cl', amount: 123, quantity: 1, total: 123 },
-  { product: 'Product 1', size: '20 cl', amount: 123, quantity: 1, total: 123 },
-  { product: 'Product 1', size: '20 cl', amount: 123, quantity: 1, total: 123 },
-]
-
-const INITIAL_SALES = Array.from({ length: 10 }, (_, i) => ({
-  key: `sale-${i + 1}`,
-  id: 'Or 123',
-  orderTitle: 'Order 123',
-  customer: 'Kishana',
-  fullName: 'John Doe',
-  email: 'example@gmail.com',
-  orderDate: '06/06/2026',
-  initials: 'YK',
-  contact: '0775512445',
-  items: i === 1 ? 4 : i === 2 ? 6 : 5,
-  amount: 123,
-  status: i === 0 ? 'unpaid' : 'paid',
-  orderItems: ORDER_ITEMS,
-}))
-
-const INITIAL_TOP_PRODUCTS = Array.from({ length: 10 }, (_, i) => ({
-  key: `top-${i + 1}`,
-  orderId: 'Or 123',
-  product: 'Product 1',
-  size: '20 cl',
-  quantity: 5,
-  revenue: 123,
-}))
-
 function formatMoney(value) {
   return `€ ${Number(value).toFixed(2)}`
+}
+
+function formatDisplayDate(isoDate) {
+  if (!isoDate) return ''
+  const [year, month, day] = isoDate.split('-')
+  if (!year || !month || !day) return isoDate
+  return `${month}/${day}/${year}`
 }
 
 function CloseIcon() {
@@ -106,15 +75,53 @@ function SalesPagination({ showingFrom, showingTo, total, currentPage, totalPage
 
 export default function Sales() {
   const [period, setPeriod] = useState('now')
-  const [date, setDate] = useState('2025-04-12')
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [viewTab, setViewTab] = useState('history')
   const [page, setPage] = useState(1)
-  const [sales, setSales] = useState(INITIAL_SALES)
-  const [topProducts] = useState(INITIAL_TOP_PRODUCTS)
+  const [sales, setSales] = useState([])
+  const [topProducts, setTopProducts] = useState([])
+  const [stats, setStats] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [viewOrder, setViewOrder] = useState(null)
   const [deleteId, setDeleteId] = useState(null)
+  const dateInputRef = useRef(null)
+
+  function openCalendar() {
+    const input = dateInputRef.current
+    if (!input) return
+    if (typeof input.showPicker === 'function') {
+      input.showPicker()
+    } else {
+      input.focus()
+      input.click()
+    }
+  }
+
+  async function loadSalesData() {
+    setLoading(true)
+    setError('')
+    try {
+      const [salesRes, statsRes, topRes] = await Promise.all([
+        api.getSales({ period, date, status: statusFilter, search }),
+        api.getSaleStats(),
+        api.getTopProducts(),
+      ])
+      setSales(salesRes.data || [])
+      setStats(statsRes.data || [])
+      setTopProducts(topRes.data || [])
+    } catch (err) {
+      setError(err.message || 'Failed to load sales')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadSalesData()
+  }, [period, date, statusFilter])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -124,10 +131,9 @@ export default function Sales() {
         row.customer.toLowerCase().includes(q) ||
         row.id.toLowerCase().includes(q) ||
         row.contact.includes(q)
-      const matchStatus = statusFilter === 'all' || row.status === statusFilter
-      return matchSearch && matchStatus
+      return matchSearch
     })
-  }, [sales, search, statusFilter])
+  }, [sales, search])
 
   const filteredTop = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -156,11 +162,17 @@ export default function Sales() {
     setPage(1)
   }
 
-  function confirmDeleteSale() {
+  async function confirmDeleteSale() {
     if (!deleteId) return
-    setSales((prev) => prev.filter((s) => s.key !== deleteId))
-    if (viewOrder?.key === deleteId) setViewOrder(null)
-    setDeleteId(null)
+    try {
+      await api.deleteSale(deleteId)
+      setDeleteId(null)
+      if (viewOrder?.key === deleteId) setViewOrder(null)
+      await loadSalesData()
+    } catch (err) {
+      setError(err.message || 'Failed to delete sale')
+      setDeleteId(null)
+    }
   }
 
   function downloadOrder(order) {
@@ -236,21 +248,31 @@ export default function Sales() {
               key={opt.id}
               type="button"
               className={`sales-pill ${period === opt.id ? 'sales-pill-active' : ''}`}
-              onClick={() => setPeriod(opt.id)}
+              onClick={() => {
+                setPeriod(opt.id)
+                setPage(1)
+              }}
             >
               {opt.label}
             </button>
           ))}
         </div>
 
-        <label className="sales-date">
+        <button type="button" className="sales-date" onClick={openCalendar}>
           <img src="/sales/calendar.svg" alt="" />
+          <span className="sales-date-text">{formatDisplayDate(date)}</span>
           <input
+            ref={dateInputRef}
             type="date"
+            className="sales-date-native"
             value={date}
-            onChange={(e) => setDate(e.target.value)}
+            onChange={(e) => {
+              setDate(e.target.value)
+              setPage(1)
+            }}
+            onClick={(e) => e.stopPropagation()}
           />
-        </label>
+        </button>
 
         <div className="pos-search sales-search">
           <span className="pos-search-icon">
@@ -304,9 +326,12 @@ export default function Sales() {
         </button>
       </div>
 
+      {error ? <p className="api-error">{error}</p> : null}
+      {loading ? <p className="api-loading">Loading sales...</p> : null}
+
       {viewTab === 'history' ? (
         <div className="stat-grid sales-stats">
-          {STATS.map((s) => (
+          {stats.map((s) => (
             <StatCard key={s.label} {...s} />
           ))}
         </div>
@@ -328,6 +353,11 @@ export default function Sales() {
                 </tr>
               </thead>
               <tbody>
+                {!loading && pageItems.length === 0 ? (
+                  <tr>
+                    <td colSpan={7}>No sales found</td>
+                  </tr>
+                ) : null}
                 {pageItems.map((row) => (
                   <tr key={row.key}>
                     <td>{row.id}</td>
@@ -406,6 +436,11 @@ export default function Sales() {
                 </tr>
               </thead>
               <tbody>
+                {!loading && pageItems.length === 0 ? (
+                  <tr>
+                    <td colSpan={5}>No top products found</td>
+                  </tr>
+                ) : null}
                 {pageItems.map((row) => (
                   <tr key={row.key}>
                     <td>{row.orderId}</td>
@@ -433,11 +468,7 @@ export default function Sales() {
       )}
 
       {viewOrder ? (
-        <div
-          className="modal-backdrop"
-          role="presentation"
-          onClick={() => setViewOrder(null)}
-        >
+        <div className="modal-backdrop" role="presentation" onClick={() => setViewOrder(null)}>
           <div
             className="order-modal"
             role="dialog"
@@ -554,8 +585,8 @@ export default function Sales() {
             </div>
             <h2 id="confirm-sales-delete-title">Confirm Deletion</h2>
             <p>
-              Deleting this Sales report will permanently remove the Sales from the table.
-              Do you want to continue?
+              Deleting this Sales report will permanently remove the Sales from the table. Do you
+              want to continue?
             </p>
             <div className="confirm-actions">
               <button

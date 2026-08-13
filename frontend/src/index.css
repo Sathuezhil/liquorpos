@@ -656,6 +656,92 @@ input {
   border: 1px solid #c4cfdb;
 }
 
+.pos-customer-search-wrap {
+  position: relative;
+}
+
+.pos-customer-dropdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 20;
+  background: #fff;
+  border: 1px solid #c4cfdb;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.pos-customer-option {
+  width: 100%;
+  border: none;
+  background: #fff;
+  text-align: left;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+}
+
+.pos-customer-option:hover {
+  background: #eef5fc;
+}
+
+.pos-customer-option-name {
+  font-weight: 700;
+  color: #111;
+}
+
+.pos-customer-option-meta {
+  font-size: 0.82rem;
+  color: #6b7280;
+}
+
+.pos-customer-empty {
+  padding: 12px 14px;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.pos-selected-customer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: #dceaf8;
+  color: #111;
+  font-weight: 600;
+}
+
+.pos-selected-customer strong {
+  color: #0076d2;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.pos-customer-clear {
+  border: none;
+  background: transparent;
+  color: #0076d2;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.pos-checkout-ok {
+  margin: 0 0 8px;
+  color: #1f9d55;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
 .order-list-head {
   display: flex;
   align-items: center;
@@ -1063,36 +1149,52 @@ input {
 }
 
 .sales-date {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   height: 40px;
-  padding: 0 14px;
+  padding: 0 16px;
   background: #f2f2f3;
   border: 1px solid #c4cfdb;
-  border-radius: 12px;
+  border-radius: 999px;
   box-sizing: border-box;
+  cursor: pointer;
+  overflow: hidden;
 }
 
 .sales-date img {
   width: 16px;
   height: 16px;
   flex-shrink: 0;
+  pointer-events: none;
 }
 
-.sales-date input {
-  border: none;
-  outline: none;
-  background: transparent;
+.sales-date-text {
   color: #3d4656;
   font: inherit;
   font-weight: 600;
-  min-width: 118px;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
-.sales-date input::-webkit-calendar-picker-indicator {
-  display: none;
-  -webkit-appearance: none;
+.sales-date-native {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  cursor: pointer;
+}
+
+.sales-date-native::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
 }
 
 .sales-search {
@@ -1417,7 +1519,8 @@ input {
   font-size: 0.95rem;
 }
 
-.add-product-field input {
+.add-product-field input,
+.add-product-field select {
   width: 100%;
   border: none;
   outline: none;
@@ -1428,6 +1531,18 @@ input {
   font-weight: 500;
   color: #111;
   box-sizing: border-box;
+}
+
+.api-error {
+  margin: 0;
+  color: #ec1c24;
+  font-weight: 600;
+}
+
+.api-loading {
+  margin: 0;
+  color: #6b7280;
+  font-weight: 500;
 }
 
 .add-product-field input::placeholder {

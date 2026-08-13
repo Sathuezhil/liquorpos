@@ -1,18 +1,14 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { api } from '../api'
 import TabBar from '../components/TabBar'
 
 const PAGE_SIZE = 8
 
-const PRODUCTS = Array.from({ length: 16 }, (_, i) => ({
-  id: i + 1,
-  name: 'Product 1',
-  size: '20 cl',
-  amount: 123,
-  quantity: 20,
-  qtyTone: i % 8 === 0 ? 'orange' : i % 8 === 1 ? 'red' : 'green',
-}))
-
-const CART_SEED = []
+function qtyToneFromStatus(status) {
+  if (status === 'low') return 'orange'
+  if (status === 'out') return 'red'
+  return 'green'
+}
 
 function PlusIcon() {
   return (
@@ -31,20 +27,64 @@ function MinusIcon() {
 }
 
 function formatMoney(value) {
-  return `€${value.toFixed(2)}`
+  return `€${Number(value).toFixed(2)}`
 }
 
 export default function POS() {
+  const [products, setProducts] = useState([])
+  const [customers, setCustomers] = useState([])
   const [search, setSearch] = useState('')
-  const [customer, setCustomer] = useState('')
-  const [cart, setCart] = useState(CART_SEED)
+  const [customerQuery, setCustomerQuery] = useState('')
+  const [selectedCustomer, setSelectedCustomer] = useState(null)
+  const [showCustomerList, setShowCustomerList] = useState(false)
+  const [cart, setCart] = useState([])
   const [page, setPage] = useState(1)
+  const [checkoutMsg, setCheckoutMsg] = useState('')
+  const [checkoutError, setCheckoutError] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    api
+      .getProducts()
+      .then((res) => {
+        setProducts(
+          (res.data || []).map((p) => ({
+            ...p,
+            qtyTone: qtyToneFromStatus(p.status),
+          })),
+        )
+      })
+      .catch(() => setProducts([]))
+
+    api
+      .getCustomers()
+      .then((res) => setCustomers(res.data || []))
+      .catch(() => setCustomers([]))
+  }, [])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    if (!q) return PRODUCTS
-    return PRODUCTS.filter((p) => p.name.toLowerCase().includes(q))
-  }, [search])
+    if (!q) return products
+    return products.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.size.toLowerCase().includes(q) ||
+        String(p.id).toLowerCase().includes(q),
+    )
+  }, [search, products])
+
+  const customerMatches = useMemo(() => {
+    const q = customerQuery.trim().toLowerCase()
+    if (!q) return []
+    return customers
+      .filter(
+        (c) =>
+          c.name.toLowerCase().includes(q) ||
+          c.contact.includes(q) ||
+          (c.email || '').toLowerCase().includes(q),
+      )
+      .slice(0, 8)
+  }, [customerQuery, customers])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const currentPage = Math.min(page, totalPages)
@@ -62,10 +102,27 @@ export default function POS() {
     [cart],
   )
 
+  function selectCustomer(customer) {
+    setSelectedCustomer(customer)
+    setCustomerQuery('')
+    setShowCustomerList(false)
+    setCheckoutError('')
+    setCheckoutMsg('')
+  }
+
+  function clearSelectedCustomer() {
+    setSelectedCustomer(null)
+    setCustomerQuery('')
+  }
+
   function addProduct(product) {
     setCart((prev) => {
       const existing = prev.find(
-        (item) => item.name === product.name && item.unitPrice === product.amount,
+        (item) =>
+          item.productId === product.id &&
+          item.name === product.name &&
+          item.size === product.size &&
+          item.unitPrice === product.amount,
       )
       if (existing) {
         return prev.map((item) =>
@@ -76,7 +133,9 @@ export default function POS() {
         ...prev,
         {
           id: `${product.id}-${Date.now()}`,
+          productId: product.id,
           name: product.name,
+          size: product.size,
           unitPrice: product.amount,
           qty: 1,
         },
@@ -94,6 +153,51 @@ export default function POS() {
 
   function removeItem(id) {
     setCart((prev) => prev.filter((item) => item.id !== id))
+  }
+
+  async function checkout(status) {
+    setCheckoutError('')
+    setCheckoutMsg('')
+
+    if (!selectedCustomer) {
+      setCheckoutError('Select a customer first')
+      return
+    }
+    if (cart.length === 0) {
+      setCheckoutError('Cart is empty')
+      return
+    }
+
+    setSaving(true)
+    try {
+      await api.createSale({
+        customerId: selectedCustomer.key,
+        customerName: selectedCustomer.name,
+        fullName: selectedCustomer.name,
+        contact: selectedCustomer.contact,
+        email: selectedCustomer.email || '',
+        status,
+        items: cart.map((item) => ({
+          product: item.name,
+          size: item.size,
+          amount: item.unitPrice,
+          quantity: item.qty,
+          total: item.unitPrice * item.qty,
+        })),
+      })
+      setCart([])
+      setSelectedCustomer(null)
+      setCustomerQuery('')
+      setCheckoutMsg(
+        status === 'paid'
+          ? `Order saved for ${selectedCustomer.name} (Paid)`
+          : `Order saved for ${selectedCustomer.name} (Not paid)`,
+      )
+    } catch (err) {
+      setCheckoutError(err.message || 'Failed to save order')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -198,17 +302,59 @@ export default function POS() {
       <aside className="pos-panel pos-order">
         <div className="pos-order-top-card">
           <h2 className="pos-order-title">Current Order</h2>
-          <div className="pos-search">
-            <span className="pos-search-icon">
-              <img src="/pos/search.svg" alt="" />
-            </span>
-            <input
-              type="search"
-              placeholder="Search Customer"
-              value={customer}
-              onChange={(e) => setCustomer(e.target.value)}
-            />
+          <div className="pos-customer-search-wrap">
+            <div className="pos-search">
+              <span className="pos-search-icon">
+                <img src="/pos/search.svg" alt="" />
+              </span>
+              <input
+                type="search"
+                placeholder="Search Customer"
+                value={customerQuery}
+                onChange={(e) => {
+                  setCustomerQuery(e.target.value)
+                  setShowCustomerList(true)
+                }}
+                onFocus={() => setShowCustomerList(true)}
+              />
+            </div>
+
+            {showCustomerList && customerQuery.trim() ? (
+              <div className="pos-customer-dropdown">
+                {customerMatches.length === 0 ? (
+                  <div className="pos-customer-empty">No customer found</div>
+                ) : (
+                  customerMatches.map((c) => (
+                    <button
+                      key={c.key}
+                      type="button"
+                      className="pos-customer-option"
+                      onClick={() => selectCustomer(c)}
+                    >
+                      <span className="pos-customer-option-name">{c.name}</span>
+                      <span className="pos-customer-option-meta">{c.contact}</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            ) : null}
           </div>
+
+          {selectedCustomer ? (
+            <div className="pos-selected-customer">
+              <span>
+                Customer: <strong>{selectedCustomer.name.toUpperCase()}</strong>
+              </span>
+              <button
+                type="button"
+                className="pos-customer-clear"
+                aria-label="Clear customer"
+                onClick={clearSelectedCustomer}
+              >
+                ×
+              </button>
+            </div>
+          ) : null}
         </div>
 
         <div className="order-list-head">
@@ -227,7 +373,9 @@ export default function POS() {
                 <div className="order-item-top">
                   <div>
                     <div className="order-item-name">{item.name}</div>
-                    <div className="order-item-price">{formatMoney(item.unitPrice)}</div>
+                    <div className="order-item-price">
+                      {item.size} · {formatMoney(item.unitPrice)}
+                    </div>
                   </div>
                   <button
                     type="button"
@@ -266,15 +414,27 @@ export default function POS() {
         </div>
 
         <div className="order-footer">
+          {checkoutError ? <p className="api-error">{checkoutError}</p> : null}
+          {checkoutMsg ? <p className="pos-checkout-ok">{checkoutMsg}</p> : null}
           <div className="order-subtotal">
             <span>Subtotal:</span>
             <strong>{formatMoney(subtotal).replace('.', ',')}</strong>
           </div>
           <div className="order-pay-actions">
-            <button type="button" className="btn-not-paid">
+            <button
+              type="button"
+              className="btn-not-paid"
+              disabled={saving}
+              onClick={() => checkout('unpaid')}
+            >
               Not Paid
             </button>
-            <button type="button" className="btn-paid">
+            <button
+              type="button"
+              className="btn-paid"
+              disabled={saving}
+              onClick={() => checkout('paid')}
+            >
               Paid
             </button>
           </div>
