@@ -30,15 +30,21 @@ export default function Login() {
 
   return (
     <div className="login-page">
-      <form className="login-card" onSubmit={handleSubmit}>
+      <form className="login-card" onSubmit={handleSubmit} autoComplete="off">
         <h1>Admin Login</h1>
 
         <div className="login-field">
-          <label htmlFor="username">Username</label>
+          <label htmlFor="login-username">Username</label>
           <input
-            id="username"
+            id="login-username"
+            name="login-username"
             type="text"
-            autoComplete="username"
+            autoComplete="off"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            readOnly
+            onFocus={(e) => e.currentTarget.removeAttribute('readOnly')}
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder="eg; admin"
@@ -46,11 +52,14 @@ export default function Login() {
         </div>
 
         <div className="login-field">
-          <label htmlFor="password">Password</label>
+          <label htmlFor="login-password">Password</label>
           <input
-            id="password"
+            id="login-password"
+            name="login-password"
             type="password"
-            autoComplete="current-password"
+            autoComplete="new-password"
+            readOnly
+            onFocus={(e) => e.currentTarget.removeAttribute('readOnly')}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
