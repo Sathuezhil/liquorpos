@@ -4,12 +4,11 @@
   publish = "dist"
 
 [build.environment]
-  VITE_API_URL = "https://mileage-determine-digest-invite.trycloudflare.com/api"
+  VITE_API_URL = "https://peers-larger-organic-impacts.trycloudflare.com/api"
 
-# Keep proxy as fallback for relative /api calls
 [[redirects]]
   from = "/api/*"
-  to = "https://mileage-determine-digest-invite.trycloudflare.com/api/:splat"
+  to = "https://peers-larger-organic-impacts.trycloudflare.com/api/:splat"
   status = 200
   force = true
 
