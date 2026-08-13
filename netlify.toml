@@ -3,6 +3,13 @@
   command = "npm run build"
   publish = "dist"
 
+# Proxy API to live backend (Cloudflare tunnel → local Express+Mongo). Replace with Render URL for permanent host.
+[[redirects]]
+  from = "/api/*"
+  to = "https://mileage-determine-digest-invite.trycloudflare.com/api/:splat"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
