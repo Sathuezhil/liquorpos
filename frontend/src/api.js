@@ -64,6 +64,11 @@ export const api = {
   getSaleStats: () => request('/sales/stats'),
   getTopProducts: () => request('/sales/top-products'),
   createSale: (body) => request('/sales', { method: 'POST', body: JSON.stringify(body) }),
+  updateSaleStatus: (id, status) =>
+    request(`/sales/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }),
   deleteSale: (id) => request(`/sales/${id}`, { method: 'DELETE' }),
 
   getDashboardStats: () => request('/dashboard/stats'),

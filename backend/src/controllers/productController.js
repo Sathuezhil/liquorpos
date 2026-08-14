@@ -4,7 +4,7 @@ import Product from '../models/Product.js'
 
 function stockStatus(qty) {
   if (qty <= 0) return 'out'
-  if (qty < 10) return 'low'
+  if (qty <= 20) return 'low'
   return 'in'
 }
 

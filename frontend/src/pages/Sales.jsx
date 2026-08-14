@@ -87,6 +87,7 @@ export default function Sales() {
   const [error, setError] = useState('')
   const [viewOrder, setViewOrder] = useState(null)
   const [deleteId, setDeleteId] = useState(null)
+  const [statusSaving, setStatusSaving] = useState(false)
   const dateInputRef = useRef(null)
 
   function openCalendar() {
@@ -172,6 +173,24 @@ export default function Sales() {
     } catch (err) {
       setError(err.message || 'Failed to delete sale')
       setDeleteId(null)
+    }
+  }
+
+  async function toggleOrderPayment() {
+    if (!viewOrder || statusSaving) return
+    const nextStatus = viewOrder.status === 'paid' ? 'unpaid' : 'paid'
+    setStatusSaving(true)
+    setError('')
+    try {
+      const res = await api.updateSaleStatus(viewOrder.key, nextStatus)
+      const updated = res.data
+      setViewOrder(updated)
+      setSales((prev) => prev.map((row) => (row.key === updated.key ? { ...row, ...updated } : row)))
+      await loadSalesData()
+    } catch (err) {
+      setError(err.message || 'Failed to update payment status')
+    } finally {
+      setStatusSaving(false)
     }
   }
 
@@ -477,7 +496,26 @@ export default function Sales() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="order-modal-head">
-              <h2 id="order-modal-title">{viewOrder.orderTitle}</h2>
+              <div className="order-modal-title-row">
+                <h2 id="order-modal-title">{viewOrder.orderTitle}</h2>
+                <span
+                  className={`status-pill ${viewOrder.status === 'paid' ? 'status-paid' : 'status-unpaid'}`}
+                >
+                  {viewOrder.status === 'paid' ? 'Paid' : 'Not Paid'}
+                </span>
+                <button
+                  type="button"
+                  className={`pay-toggle ${viewOrder.status === 'paid' ? 'pay-toggle-on' : 'pay-toggle-off'}`}
+                  aria-label={
+                    viewOrder.status === 'paid' ? 'Mark as Not Paid' : 'Mark as Paid'
+                  }
+                  aria-pressed={viewOrder.status === 'paid'}
+                  disabled={statusSaving}
+                  onClick={toggleOrderPayment}
+                >
+                  <span className="pay-toggle-knob" />
+                </button>
+              </div>
               <div className="order-modal-actions">
                 <button
                   type="button"

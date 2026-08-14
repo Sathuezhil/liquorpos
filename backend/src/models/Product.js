@@ -40,7 +40,7 @@ const productSchema = new mongoose.Schema(
 
 productSchema.virtual('status').get(function status() {
   if (this.quantity <= 0) return 'out'
-  if (this.quantity < 10) return 'low'
+  if (this.quantity <= 20) return 'low'
   return 'in'
 })
 

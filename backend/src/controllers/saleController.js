@@ -264,6 +264,26 @@ export async function createSale(req, res) {
   }
 }
 
+export async function updateSaleStatus(req, res) {
+  try {
+    const sale = await findSale(req.params.id)
+    if (!sale) {
+      return res.status(404).json({ success: false, message: 'Sale not found' })
+    }
+
+    const next = String(req.body?.status || '').toLowerCase()
+    if (next !== 'paid' && next !== 'unpaid') {
+      return res.status(400).json({ success: false, message: 'status must be paid or unpaid' })
+    }
+
+    sale.status = next
+    await sale.save()
+    res.json({ success: true, data: serializeSale(sale) })
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message })
+  }
+}
+
 export async function deleteSale(req, res) {
   try {
     const sale = await findSale(req.params.id)
