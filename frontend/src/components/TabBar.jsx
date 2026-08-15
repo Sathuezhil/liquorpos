@@ -1,14 +1,17 @@
 import { NavLink } from 'react-router-dom'
+import { useI18n } from '../i18n/I18nContext'
 
 export const APP_TABS = [
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/pos', label: 'POS' },
-  { to: '/product', label: 'Product' },
-  { to: '/sales', label: 'Sales' },
-  { to: '/customer', label: 'Customer' },
+  { to: '/dashboard', labelKey: 'tabs.dashboard' },
+  { to: '/pos', labelKey: 'tabs.pos' },
+  { to: '/product', labelKey: 'tabs.product' },
+  { to: '/sales', labelKey: 'tabs.sales' },
+  { to: '/customer', labelKey: 'tabs.customer' },
 ]
 
 export default function TabBar() {
+  const { t } = useI18n()
+
   return (
     <nav className="tab-bar" aria-label="Main">
       {APP_TABS.map((tab) => (
@@ -17,7 +20,7 @@ export default function TabBar() {
           to={tab.to}
           className={({ isActive }) => `tab ${isActive ? 'tab-active' : ''}`}
         >
-          {tab.label}
+          {t(tab.labelKey)}
         </NavLink>
       ))}
     </nav>

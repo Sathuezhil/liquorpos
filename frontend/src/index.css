@@ -53,6 +53,7 @@ select {
   place-items: center;
   padding: 24px;
   background: #cfe6f7;
+  position: relative;
 }
 
 .login-card {
@@ -233,6 +234,42 @@ select {
 
 .pill-logout:hover {
   background: #fff5f5;
+}
+
+.lang-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 14px;
+  background: #e6f0ff;
+  border-radius: 999px;
+  color: #111;
+  box-sizing: border-box;
+}
+
+.lang-select-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.lang-select select {
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #111;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  max-width: 110px;
+}
+
+.login-lang {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 2;
 }
 
 .tab-bar {
@@ -1880,6 +1917,14 @@ select {
 
   .pill-logout-label {
     display: none;
+  }
+
+  .lang-select-label {
+    display: none;
+  }
+
+  .lang-select {
+    padding: 0 10px;
   }
 
   .pill-logout {

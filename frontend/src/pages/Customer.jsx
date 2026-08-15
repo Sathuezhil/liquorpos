@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api'
+import { useI18n } from '../i18n/I18nContext'
 
 const PAGE_SIZE = 10
 
@@ -31,6 +32,7 @@ function StatCard({ value, label }) {
 }
 
 export default function Customer() {
+  const { t } = useI18n()
   const [customers, setCustomers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -52,7 +54,7 @@ export default function Customer() {
       const res = await api.getCustomers()
       setCustomers(res.data || [])
     } catch (err) {
-      setError(err.message || 'Failed to load customers')
+      setError(err.message || t('customer.loadError'))
     } finally {
       setLoading(false)
     }
@@ -89,7 +91,7 @@ export default function Customer() {
       if (viewCustomer?.key === key) setViewCustomer(null)
       await loadCustomers()
     } catch (err) {
-      setError(err.message || 'Failed to delete customer')
+      setError(err.message || t('customer.deleteError'))
     }
   }
 
@@ -153,7 +155,7 @@ export default function Customer() {
       closeFormModal()
     } catch (err) {
       setConfirmOpen(false)
-      setNameError(err.message || 'Failed to save customer')
+      setNameError(err.message || t('customer.saveError'))
     }
   }
 
@@ -166,7 +168,7 @@ export default function Customer() {
           </span>
           <input
             type="search"
-            placeholder="Search"
+            placeholder={t('search')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value)
@@ -176,29 +178,29 @@ export default function Customer() {
         </div>
 
         <button type="button" className="product-add-btn" onClick={openAddModal}>
-          + Add Customer
+          {t('customer.add')}
         </button>
       </div>
 
       {error ? <p className="api-error">{error}</p> : null}
-      {loading ? <p className="api-loading">Loading customers...</p> : null}
+      {loading ? <p className="api-loading">{t('customer.loading')}</p> : null}
 
       <div className="product-table-wrap">
         <table className="product-table customer-table">
           <thead>
             <tr>
-              <th>Customer ID</th>
-              <th>Customer Name</th>
-              <th>Contact number</th>
-              <th>Total Orders</th>
-              <th>Amount Spend</th>
-              <th>Action</th>
+              <th>{t('customer.id')}</th>
+              <th>{t('customer.name')}</th>
+              <th>{t('customer.contact')}</th>
+              <th>{t('customer.totalOrders')}</th>
+              <th>{t('customer.amountSpend')}</th>
+              <th>{t('action')}</th>
             </tr>
           </thead>
           <tbody>
             {!loading && pageItems.length === 0 ? (
               <tr>
-                <td colSpan={6}>No customers found</td>
+                <td colSpan={6}>{t('customer.noData')}</td>
               </tr>
             ) : null}
             {pageItems.map((customer) => (
@@ -218,7 +220,7 @@ export default function Customer() {
                     <button
                       type="button"
                       className="action-btn"
-                      aria-label="View"
+                      aria-label={t('view')}
                       onClick={() => setViewCustomer(customer)}
                     >
                       <img src="/sales/view.svg" alt="" />
@@ -226,7 +228,7 @@ export default function Customer() {
                     <button
                       type="button"
                       className="action-btn"
-                      aria-label="Edit"
+                      aria-label={t('edit')}
                       onClick={() => openEditModal(customer)}
                     >
                       <img src="/product/edit.svg" alt="" />
@@ -234,7 +236,7 @@ export default function Customer() {
                     <button
                       type="button"
                       className="action-btn"
-                      aria-label="Delete"
+                      aria-label={t('delete')}
                       onClick={() => deleteCustomer(customer.key)}
                     >
                       <img src="/product/delete.svg" alt="" />
@@ -249,14 +251,17 @@ export default function Customer() {
 
       <div className="pos-pagination">
         <span className="pos-page-info">
-          Showing {String(showingFrom).padStart(2, '0')}-{String(showingTo).padStart(2, '0')} of{' '}
-          {String(filtered.length).padStart(2, '0')} Orders
+          {t('showingOrders', {
+            from: String(showingFrom).padStart(2, '0'),
+            to: String(showingTo).padStart(2, '0'),
+            total: String(filtered.length).padStart(2, '0'),
+          })}
         </span>
         <div className="pos-page-controls">
           <button
             type="button"
             className="page-btn"
-            aria-label="Previous page"
+            aria-label={t('previousPage')}
             disabled={currentPage <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
           >
@@ -276,7 +281,7 @@ export default function Customer() {
           <button
             type="button"
             className="page-btn"
-            aria-label="Next page"
+            aria-label={t('nextPage')}
             disabled={currentPage >= totalPages}
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
           >
@@ -296,11 +301,13 @@ export default function Customer() {
             onSubmit={handleSubmitCustomer}
           >
             <div className="add-product-head">
-              <h2 id="customer-form-title">{isEditing ? 'Edit Customer' : 'Add Customer'}</h2>
+              <h2 id="customer-form-title">
+                {isEditing ? t('customer.edit') : t('customer.addTitle')}
+              </h2>
               <button
                 type="button"
                 className="add-product-close"
-                aria-label="Close"
+                aria-label={t('close')}
                 onClick={closeFormModal}
               >
                 <CloseIcon />
@@ -308,7 +315,7 @@ export default function Customer() {
             </div>
 
             <label className="add-product-field">
-              <span>Customer name</span>
+              <span>{t('customer.nameLabel')}</span>
               <input
                 type="text"
                 placeholder="eg; James"
@@ -320,7 +327,7 @@ export default function Customer() {
             </label>
 
             <label className="add-product-field">
-              <span>Phone number</span>
+              <span>{t('customer.phoneLabel')}</span>
               <input
                 type="tel"
                 placeholder="eg; 0777669122456"
@@ -331,7 +338,7 @@ export default function Customer() {
             </label>
 
             <label className="add-product-field">
-              <span>Email address</span>
+              <span>{t('customer.emailLabel')}</span>
               <input
                 type="email"
                 placeholder="eg; example@gmail.com"
@@ -341,7 +348,7 @@ export default function Customer() {
             </label>
 
             <button type="submit" className="add-product-submit">
-              {isEditing ? 'Update Customer' : 'Add Customer'}
+              {isEditing ? t('customer.edit') : t('customer.addTitle')}
             </button>
           </form>
 
@@ -361,22 +368,22 @@ export default function Customer() {
                 aria-labelledby="confirm-customer-save-title"
                 onClick={(e) => e.stopPropagation()}
               >
-                <h2 id="confirm-customer-save-title">Confirm Save Action</h2>
-                <p>Please confirm if you want to save the Customer.</p>
+                <h2 id="confirm-customer-save-title">{t('customer.confirmSaveTitle')}</h2>
+                <p>{t('customer.confirmSave')}</p>
                 <div className="confirm-actions">
                   <button
                     type="button"
                     className="confirm-no confirm-no--blue"
                     onClick={() => setConfirmOpen(false)}
                   >
-                    No
+                    {t('no')}
                   </button>
                   <button
                     type="button"
                     className="confirm-yes confirm-yes--blue"
                     onClick={confirmSaveCustomer}
                   >
-                    Yes
+                    {t('yes')}
                   </button>
                 </div>
               </div>
@@ -404,7 +411,7 @@ export default function Customer() {
                 <button
                   type="button"
                   className="action-btn"
-                  aria-label="Edit customer"
+                  aria-label={t('edit')}
                   onClick={() => openEditModal(viewCustomer)}
                 >
                   <img src="/product/edit.svg" alt="" />
@@ -412,7 +419,7 @@ export default function Customer() {
                 <button
                   type="button"
                   className="action-btn"
-                  aria-label="Delete customer"
+                  aria-label={t('delete')}
                   onClick={() => deleteCustomer(viewCustomer.key)}
                 >
                   <img src="/product/delete.svg" alt="" />
@@ -420,7 +427,7 @@ export default function Customer() {
                 <button
                   type="button"
                   className="add-product-close"
-                  aria-label="Close"
+                  aria-label={t('close')}
                   onClick={() => setViewCustomer(null)}
                 >
                   <CloseIcon />
@@ -429,28 +436,28 @@ export default function Customer() {
             </div>
 
             <div className="customer-view-stats">
-              <StatCard value={String(viewCustomer.viewOrders)} label="Total Orders" />
-              <StatCard value={formatMoney(viewCustomer.viewSpend)} label="Total Spend" />
+              <StatCard value={String(viewCustomer.viewOrders)} label={t('customer.totalOrders')} />
+              <StatCard value={formatMoney(viewCustomer.viewSpend)} label={t('customer.spend')} />
             </div>
 
-            <h3 className="order-section-title">Customer Information</h3>
+            <h3 className="order-section-title">{t('customer.viewTitle')}</h3>
             <div className="order-info-box">
               <div className="order-info-item">
-                <span className="order-info-label">Customer name</span>
+                <span className="order-info-label">{t('customer.nameLabel')}</span>
                 <div className="order-info-value">
                   <img src="/sales/user.svg" alt="" />
                   <span>{viewCustomer.fullName}</span>
                 </div>
               </div>
               <div className="order-info-item">
-                <span className="order-info-label">Phone number</span>
+                <span className="order-info-label">{t('customer.phoneLabel')}</span>
                 <div className="order-info-value">
                   <img src="/sales/user.svg" alt="" />
                   <span>{viewCustomer.contact}</span>
                 </div>
               </div>
               <div className="order-info-item">
-                <span className="order-info-label">Email address</span>
+                <span className="order-info-label">{t('customer.emailLabel')}</span>
                 <div className="order-info-value">
                   <img src="/sales/email.svg" alt="" />
                   <span>{viewCustomer.email || '-'}</span>

@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react'
 import { Navigate, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
+import { useI18n } from '../i18n/I18nContext'
+import LanguageSelect from './LanguageSelect'
 import TabBar from './TabBar'
 
-function formatNow(date) {
-  const time = date.toLocaleTimeString('en-US', {
+function formatNow(date, locale) {
+  const time = date.toLocaleTimeString(locale, {
     hour: 'numeric',
     minute: '2-digit',
-    hour12: true,
+    hour12: locale.startsWith('en'),
   })
-  const dayDate = date.toLocaleDateString('en-US', {
+  const dayDate = date.toLocaleDateString(locale, {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
@@ -20,6 +22,7 @@ function formatNow(date) {
 
 export default function AppShell() {
   const { user, logout } = useAuth()
+  const { t, locale } = useI18n()
   const navigate = useNavigate()
   const [now, setNow] = useState(() => new Date())
   const [logoutOpen, setLogoutOpen] = useState(false)
@@ -31,7 +34,7 @@ export default function AppShell() {
 
   if (!user) return <Navigate to="/login" replace />
 
-  const { time, dayDate } = formatNow(now)
+  const { time, dayDate } = formatNow(now, locale)
 
   function confirmLogout() {
     setLogoutOpen(false)
@@ -42,8 +45,9 @@ export default function AppShell() {
   return (
     <div className="app-shell">
       <header className="top-bar">
-        <h1 className="brand">Point of Sales</h1>
+        <h1 className="brand">{t('brand')}</h1>
         <div className="top-actions">
+          <LanguageSelect />
           <div className="pill pill-info pill-datetime">
             <img className="pill-icon" src="/dashboard/time.svg" alt="" />
             <div className="pill-datetime-text">
@@ -61,7 +65,7 @@ export default function AppShell() {
             onClick={() => setLogoutOpen(true)}
           >
             <img className="pill-icon" src="/dashboard/logout.svg" alt="" />
-            <span className="pill-logout-label">Log out</span>
+            <span className="pill-logout-label">{t('logout')}</span>
           </button>
         </div>
       </header>
@@ -85,18 +89,18 @@ export default function AppShell() {
             aria-labelledby="logout-title"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 id="logout-title">Log Out</h2>
-            <p>Please confirm if you want to log out.</p>
+            <h2 id="logout-title">{t('logoutTitle')}</h2>
+            <p>{t('logoutConfirm')}</p>
             <div className="logout-modal-actions">
               <button
                 type="button"
                 className="logout-btn-no"
                 onClick={() => setLogoutOpen(false)}
               >
-                No
+                {t('no')}
               </button>
               <button type="button" className="logout-btn-yes" onClick={confirmLogout}>
-                Yes
+                {t('yes')}
               </button>
             </div>
           </div>

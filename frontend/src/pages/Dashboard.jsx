@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
+import { useI18n } from '../i18n/I18nContext'
+import { STAT_LABEL_KEYS } from '../i18n/translations'
 
 function StatCard({ value, label }) {
   return (
@@ -11,6 +13,7 @@ function StatCard({ value, label }) {
 }
 
 export default function Dashboard() {
+  const { t } = useI18n()
   const [statsTop, setStatsTop] = useState([])
   const [statsBottom, setStatsBottom] = useState([])
   const [loading, setLoading] = useState(true)
@@ -29,7 +32,7 @@ export default function Dashboard() {
       })
       .catch((err) => {
         if (!alive) return
-        setError(err.message || 'Failed to load dashboard')
+        setError(err.message || t('dashboard.error'))
       })
       .finally(() => {
         if (alive) setLoading(false)
@@ -37,21 +40,26 @@ export default function Dashboard() {
     return () => {
       alive = false
     }
-  }, [])
+  }, [t])
+
+  function translateLabel(label) {
+    const key = STAT_LABEL_KEYS[label]
+    return key ? t(key) : label
+  }
 
   return (
     <div className="dashboard-panel">
       {error ? <p className="api-error">{error}</p> : null}
-      {loading ? <p className="api-loading">Loading dashboard...</p> : null}
+      {loading ? <p className="api-loading">{t('dashboard.loading')}</p> : null}
 
       <div className="stat-grid stat-grid-top">
         {statsTop.map((s) => (
-          <StatCard key={s.label} {...s} />
+          <StatCard key={s.label} value={s.value} label={translateLabel(s.label)} />
         ))}
       </div>
       <div className="stat-grid stat-grid-bottom">
         {statsBottom.map((s) => (
-          <StatCard key={s.label} {...s} />
+          <StatCard key={s.label} value={s.value} label={translateLabel(s.label)} />
         ))}
       </div>
     </div>

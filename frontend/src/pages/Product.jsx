@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api'
+import { useI18n } from '../i18n/I18nContext'
 
 const PAGE_SIZE = 8
 
@@ -15,12 +16,6 @@ function formatMoney(value) {
   return `€ ${Number(value).toFixed(2)}`
 }
 
-function statusLabel(status) {
-  if (status === 'low') return 'Low Stock'
-  if (status === 'out') return 'Out of Stock'
-  return 'In Stock'
-}
-
 function CloseIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -30,6 +25,7 @@ function CloseIcon() {
 }
 
 export default function Product() {
+  const { t } = useI18n()
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
@@ -46,6 +42,12 @@ export default function Product() {
 
   const isEditing = Boolean(editingId)
 
+  function statusLabel(status) {
+    if (status === 'low') return t('product.lowStock')
+    if (status === 'out') return t('product.outStock')
+    return t('product.inStock')
+  }
+
   async function loadProducts() {
     setLoading(true)
     setError('')
@@ -57,7 +59,7 @@ export default function Product() {
       setProducts(productRes.data || [])
       setCategories(categoryRes.data || [])
     } catch (err) {
-      setError(err.message || 'Failed to load products')
+      setError(err.message || t('product.loadError'))
     } finally {
       setLoading(false)
     }
@@ -157,7 +159,7 @@ export default function Product() {
       await loadProducts()
       closeModal()
     } catch (err) {
-      setError(err.message || 'Failed to save product')
+      setError(err.message || t('product.saveError'))
       setConfirmOpen(false)
     }
   }
@@ -169,7 +171,7 @@ export default function Product() {
       setDeleteId(null)
       await loadProducts()
     } catch (err) {
-      setError(err.message || 'Failed to delete product')
+      setError(err.message || t('product.deleteError'))
       setDeleteId(null)
     }
   }
@@ -183,7 +185,7 @@ export default function Product() {
           </span>
           <input
             type="search"
-            placeholder="Search"
+            placeholder={t('search')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value)
@@ -201,7 +203,7 @@ export default function Product() {
               setPage(1)
             }}
           >
-            <option value="all">Category</option>
+            <option value="all">{t('category')}</option>
             {categories.map((c) => (
               <option key={c.id || c.slug} value={c.slug}>
                 {c.name}
@@ -219,39 +221,39 @@ export default function Product() {
               setPage(1)
             }}
           >
-            <option value="all">Status</option>
-            <option value="in">In Stock</option>
-            <option value="low">Low Stock</option>
-            <option value="out">Out of Stock</option>
+            <option value="all">{t('status')}</option>
+            <option value="in">{t('product.inStock')}</option>
+            <option value="low">{t('product.lowStock')}</option>
+            <option value="out">{t('product.outStock')}</option>
           </select>
         </label>
 
         <button type="button" className="product-add-btn" onClick={openAddForm}>
-          Add Products
+          {t('product.add')}
         </button>
       </div>
 
       {error ? <p className="api-error">{error}</p> : null}
-      {loading ? <p className="api-loading">Loading products...</p> : null}
+      {loading ? <p className="api-loading">{t('product.loading')}</p> : null}
 
       <div className="product-table-wrap">
         <table className="product-table">
           <thead>
             <tr>
-              <th>Product ID</th>
-              <th>Product</th>
-              <th>Category</th>
-              <th>Size</th>
-              <th>Amount</th>
-              <th>Stock</th>
-              <th>Status</th>
-              <th>Action</th>
+              <th>{t('product.id')}</th>
+              <th>{t('product.name')}</th>
+              <th>{t('category')}</th>
+              <th>{t('product.sizeLabel')}</th>
+              <th>{t('product.amountLabel')}</th>
+              <th>{t('product.stock')}</th>
+              <th>{t('status')}</th>
+              <th>{t('action')}</th>
             </tr>
           </thead>
           <tbody>
             {!loading && pageItems.length === 0 ? (
               <tr>
-                <td colSpan={8}>No products found</td>
+                <td colSpan={8}>{t('product.noData')}</td>
               </tr>
             ) : null}
             {pageItems.map((product) => (
@@ -280,7 +282,7 @@ export default function Product() {
                     <button
                       type="button"
                       className="action-btn"
-                      aria-label="Edit"
+                      aria-label={t('edit')}
                       onClick={() => openEditForm(product)}
                     >
                       <img src="/product/edit.svg" alt="" />
@@ -288,7 +290,7 @@ export default function Product() {
                     <button
                       type="button"
                       className="action-btn"
-                      aria-label="Delete"
+                      aria-label={t('delete')}
                       onClick={() => setDeleteId(product.id)}
                     >
                       <img src="/product/delete.svg" alt="" />
@@ -303,14 +305,17 @@ export default function Product() {
 
       <div className="pos-pagination">
         <span className="pos-page-info">
-          Showing {String(showingFrom).padStart(2, '0')}-{String(showingTo).padStart(2, '0')} of{' '}
-          {String(filtered.length).padStart(2, '0')} Orders
+          {t('showingOrders', {
+            from: String(showingFrom).padStart(2, '0'),
+            to: String(showingTo).padStart(2, '0'),
+            total: String(filtered.length).padStart(2, '0'),
+          })}
         </span>
         <div className="pos-page-controls">
           <button
             type="button"
             className="page-btn"
-            aria-label="Previous page"
+            aria-label={t('previousPage')}
             disabled={currentPage <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
           >
@@ -330,7 +335,7 @@ export default function Product() {
           <button
             type="button"
             className="page-btn"
-            aria-label="Next page"
+            aria-label={t('nextPage')}
             disabled={currentPage >= totalPages}
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
           >
@@ -350,11 +355,11 @@ export default function Product() {
             onSubmit={handleSubmitProduct}
           >
             <div className="add-product-head">
-              <h2 id="product-form-title">{isEditing ? 'Edit Product' : 'Add Product'}</h2>
+              <h2 id="product-form-title">{isEditing ? t('product.edit') : t('product.add')}</h2>
               <button
                 type="button"
                 className="add-product-close"
-                aria-label="Close"
+                aria-label={t('close')}
                 onClick={closeModal}
               >
                 <CloseIcon />
@@ -362,7 +367,7 @@ export default function Product() {
             </div>
 
             <label className="add-product-field">
-              <span>Product name</span>
+              <span>{t('product.nameLabel')}</span>
               <input
                 type="text"
                 placeholder="eg; Jack Daniels"
@@ -373,14 +378,14 @@ export default function Product() {
             </label>
 
             <label className="add-product-field">
-              <span>Category</span>
+              <span>{t('product.categoryLabel')}</span>
               <select
                 value={form.category}
                 onChange={(e) => updateField('category', e.target.value)}
                 required
               >
                 <option value="" disabled>
-                  Select category
+                  {t('category')}
                 </option>
                 {categories.map((c) => (
                   <option key={c.id || c.slug} value={c.slug}>
@@ -391,7 +396,7 @@ export default function Product() {
             </label>
 
             <label className="add-product-field">
-              <span>Size</span>
+              <span>{t('product.sizeLabel')}</span>
               <input
                 type="text"
                 placeholder="eg; 70 cl"
@@ -402,7 +407,7 @@ export default function Product() {
             </label>
 
             <label className="add-product-field">
-              <span>Amount</span>
+              <span>{t('product.amountLabel')}</span>
               <input
                 type="number"
                 min="0"
@@ -415,7 +420,7 @@ export default function Product() {
             </label>
 
             <label className="add-product-field">
-              <span>Stock</span>
+              <span>{t('product.stockLabel')}</span>
               <input
                 type="number"
                 min="0"
@@ -428,7 +433,7 @@ export default function Product() {
             </label>
 
             <button type="submit" className="add-product-submit">
-              {isEditing ? 'Update Product' : 'Add Product'}
+              {isEditing ? t('product.edit') : t('product.add')}
             </button>
           </form>
 
@@ -448,22 +453,22 @@ export default function Product() {
                 aria-labelledby="confirm-save-title"
                 onClick={(e) => e.stopPropagation()}
               >
-                <h2 id="confirm-save-title">Confirm Save Action</h2>
-                <p>Please confirm if you want to save the Product.</p>
+                <h2 id="confirm-save-title">{t('product.confirmSaveTitle')}</h2>
+                <p>{t('product.confirmSave')}</p>
                 <div className="confirm-actions">
                   <button
                     type="button"
                     className="confirm-no confirm-no--blue"
                     onClick={() => setConfirmOpen(false)}
                   >
-                    No
+                    {t('no')}
                   </button>
                   <button
                     type="button"
                     className="confirm-yes confirm-yes--blue"
                     onClick={confirmSave}
                   >
-                    Yes
+                    {t('yes')}
                   </button>
                 </div>
               </div>
@@ -488,25 +493,22 @@ export default function Product() {
             <div className="confirm-delete-icon" aria-hidden="true">
               <img src="/product/delete.svg" alt="" />
             </div>
-            <h2 id="confirm-delete-title">Confirm Deletion</h2>
-            <p>
-              Deleting this Product will permanently remove the product from the table.
-              Do you want to continue?
-            </p>
+            <h2 id="confirm-delete-title">{t('product.confirmDeleteTitle')}</h2>
+            <p>{t('product.confirmDelete')}</p>
             <div className="confirm-actions">
               <button
                 type="button"
                 className="confirm-yes confirm-yes--red"
                 onClick={confirmDelete}
               >
-                Yes
+                {t('yes')}
               </button>
               <button
                 type="button"
                 className="confirm-no confirm-no--grey"
                 onClick={() => setDeleteId(null)}
               >
-                No
+                {t('no')}
               </button>
             </div>
           </div>

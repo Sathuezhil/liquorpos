@@ -1,9 +1,12 @@
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
+import { useI18n } from '../i18n/I18nContext'
+import LanguageSelect from '../components/LanguageSelect'
 
 export default function Login() {
   const { user, login } = useAuth()
+  const { t } = useI18n()
   const navigate = useNavigate()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -30,11 +33,14 @@ export default function Login() {
 
   return (
     <div className="login-page">
+      <div className="login-lang">
+        <LanguageSelect />
+      </div>
       <form className="login-card" onSubmit={handleSubmit} autoComplete="off">
-        <h1>Admin Login</h1>
+        <h1>{t('login.title')}</h1>
 
         <div className="login-field">
-          <label htmlFor="login-username">Username</label>
+          <label htmlFor="login-username">{t('login.username')}</label>
           <input
             id="login-username"
             name="login-username"
@@ -47,12 +53,12 @@ export default function Login() {
             onFocus={(e) => e.currentTarget.removeAttribute('readOnly')}
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            placeholder="eg; admin"
+            placeholder={t('login.usernamePlaceholder')}
           />
         </div>
 
         <div className="login-field">
-          <label htmlFor="login-password">Password</label>
+          <label htmlFor="login-password">{t('login.password')}</label>
           <input
             id="login-password"
             name="login-password"
@@ -69,7 +75,7 @@ export default function Login() {
         {error ? <p className="login-error">{error}</p> : null}
 
         <button type="submit" className="login-btn" disabled={loading}>
-          {loading ? 'Logging in...' : 'Login'}
+          {loading ? t('login.submitting') : t('login.submit')}
         </button>
       </form>
     </div>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api'
+import { useI18n } from '../i18n/I18nContext'
 
 const PAGE_SIZE = 8
 
@@ -30,6 +31,7 @@ function formatMoney(value) {
 }
 
 export default function POS() {
+  const { t } = useI18n()
   const [products, setProducts] = useState([])
   const [customers, setCustomers] = useState([])
   const [search, setSearch] = useState('')
@@ -159,11 +161,11 @@ export default function POS() {
     setCheckoutMsg('')
 
     if (!selectedCustomer) {
-      setCheckoutError('Select a customer first')
+      setCheckoutError(t('pos.selectCustomer'))
       return
     }
     if (cart.length === 0) {
-      setCheckoutError('Cart is empty')
+      setCheckoutError(t('pos.cartEmptyError'))
       return
     }
 
@@ -189,11 +191,11 @@ export default function POS() {
       setCustomerQuery('')
       setCheckoutMsg(
         status === 'paid'
-          ? `Order saved for ${selectedCustomer.name} (Paid)`
-          : `Order saved for ${selectedCustomer.name} (Not paid)`,
+          ? t('pos.orderSavedPaid', { name: selectedCustomer.name })
+          : t('pos.orderSavedUnpaid', { name: selectedCustomer.name }),
       )
     } catch (err) {
-      setCheckoutError(err.message || 'Failed to save order')
+      setCheckoutError(err.message || t('pos.saveFailed'))
     } finally {
       setSaving(false)
     }
@@ -209,7 +211,7 @@ export default function POS() {
             </span>
             <input
               type="search"
-              placeholder="Search"
+              placeholder={t('search')}
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value)
@@ -222,11 +224,11 @@ export default function POS() {
             <table className="pos-table">
               <thead>
                 <tr>
-                  <th>Product</th>
-                  <th>Size</th>
-                  <th>Amount</th>
-                  <th>Quantity</th>
-                  <th>Action</th>
+                  <th>{t('pos.product')}</th>
+                  <th>{t('pos.size')}</th>
+                  <th>{t('pos.amount')}</th>
+                  <th>{t('pos.quantity')}</th>
+                  <th>{t('action')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -258,14 +260,17 @@ export default function POS() {
 
           <div className="pos-pagination">
             <span className="pos-page-info">
-              Showing {String(showingFrom).padStart(2, '0')}-{String(showingTo).padStart(2, '0')} of{' '}
-              {String(filtered.length).padStart(2, '0')} Orders
+              {t('showingOrders', {
+                from: String(showingFrom).padStart(2, '0'),
+                to: String(showingTo).padStart(2, '0'),
+                total: String(filtered.length).padStart(2, '0'),
+              })}
             </span>
             <div className="pos-page-controls">
               <button
                 type="button"
                 className="page-btn"
-                aria-label="Previous page"
+                aria-label={t('previousPage')}
                 disabled={currentPage <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
               >
@@ -285,7 +290,7 @@ export default function POS() {
               <button
                 type="button"
                 className="page-btn"
-                aria-label="Next page"
+                aria-label={t('nextPage')}
                 disabled={currentPage >= totalPages}
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               >
@@ -298,7 +303,7 @@ export default function POS() {
 
       <aside className="pos-panel pos-order">
         <div className="pos-order-top-card">
-          <h2 className="pos-order-title">Current Order</h2>
+          <h2 className="pos-order-title">{t('pos.currentOrder')}</h2>
           <div className="pos-customer-search-wrap">
             <div className="pos-search">
               <span className="pos-search-icon">
@@ -306,7 +311,7 @@ export default function POS() {
               </span>
               <input
                 type="search"
-                placeholder="Search Customer"
+                placeholder={t('pos.searchCustomer')}
                 value={customerQuery}
                 onChange={(e) => {
                   setCustomerQuery(e.target.value)
@@ -319,7 +324,7 @@ export default function POS() {
             {showCustomerList && customerQuery.trim() ? (
               <div className="pos-customer-dropdown">
                 {customerMatches.length === 0 ? (
-                  <div className="pos-customer-empty">No customer found</div>
+                  <div className="pos-customer-empty">{t('customer.noData')}</div>
                 ) : (
                   customerMatches.map((c) => (
                     <button
@@ -340,12 +345,12 @@ export default function POS() {
           {selectedCustomer ? (
             <div className="pos-selected-customer">
               <span>
-                Customer: <strong>{selectedCustomer.name.toUpperCase()}</strong>
+                {t('pos.customerLabel', { name: selectedCustomer.name.toUpperCase() })}
               </span>
               <button
                 type="button"
                 className="pos-customer-clear"
-                aria-label="Clear customer"
+                aria-label={t('close')}
                 onClick={clearSelectedCustomer}
               >
                 ×
@@ -355,15 +360,15 @@ export default function POS() {
         </div>
 
         <div className="order-list-head">
-          <span>Order list</span>
+          <span>{t('pos.orderList')}</span>
           <button type="button" className="clear-cart" onClick={() => setCart([])}>
-            Clear Cart
+            {t('pos.clearCart')}
           </button>
         </div>
 
         <div className="order-items">
           {cart.length === 0 ? (
-            <p className="order-empty">Cart is empty</p>
+            <p className="order-empty">{t('pos.cartEmpty')}</p>
           ) : (
             cart.map((item) => (
               <div className="order-item" key={item.id}>
@@ -377,7 +382,7 @@ export default function POS() {
                   <button
                     type="button"
                     className="trash-btn"
-                    aria-label="Remove"
+                    aria-label={t('delete')}
                     onClick={() => removeItem(item.id)}
                   >
                     <img src="/pos/delete.svg" alt="" />
@@ -414,7 +419,7 @@ export default function POS() {
           {checkoutError ? <p className="api-error">{checkoutError}</p> : null}
           {checkoutMsg ? <p className="pos-checkout-ok">{checkoutMsg}</p> : null}
           <div className="order-subtotal">
-            <span>Subtotal:</span>
+            <span>{t('pos.subtotal')}</span>
             <strong>{formatMoney(subtotal).replace('.', ',')}</strong>
           </div>
           <div className="order-pay-actions">
@@ -424,7 +429,7 @@ export default function POS() {
               disabled={saving}
               onClick={() => checkout('unpaid')}
             >
-              Not Paid
+              {t('pos.notPaid')}
             </button>
             <button
               type="button"
@@ -432,7 +437,7 @@ export default function POS() {
               disabled={saving}
               onClick={() => checkout('paid')}
             >
-              Paid
+              {t('pos.paid')}
             </button>
           </div>
         </div>
